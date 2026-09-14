@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  api-gateway · docker — gateway dentro de docker compose, con Eureka.
+# ─────────────────────────────────────────────────────────────────────────────
+spring:
+  cloud:
+    loadbalancer:
+      cache:
+        # Tras recrear un contenedor (IP nueva), la gateway deja de usar la vieja en segundos.
+        ttl: 5s
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      # "eureka-server" es el nombre del servicio en compose. Las credenciales van en la URL.
+      defaultZone: ${EUREKA_URI:http://eureka:eureka_dev@eureka-server:8761/eureka/}
+    # Local: ver enseguida las instancias nuevas (el default es 30 s).
+    registry-fetch-interval-seconds: 5
+  instance:
+    # En Docker el hostname es el id del contenedor: se registra la IP de la red rrhh-net.
+    prefer-ip-address: true
+
+rrhh:
+  gateway:
+    services:
+      # "rrhh-backend" es el spring.application.name con el que el backend se registra.
+      backend: ${RRHH_BACKEND_URI:lb://rrhh-backend}

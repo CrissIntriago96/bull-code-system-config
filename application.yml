@@ -1,0 +1,21 @@
+# Configuración global — el Config Server la sirve a TODOS los servicios.
+# Las propiedades específicas van en {nombre-servicio}.yml / {nombre-servicio}-{perfil}.yml
+# y tienen prioridad sobre lo definido aquí.
+#
+# NUNCA poner secretos acá (en particular el del JWT): los recibiría cada servicio,
+# incluida la gateway, y cualquiera de ellos podría firmar tokens.
+
+server:
+  shutdown: graceful
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # El endpoint "gateway" (rutas y filtros) NO se expone: revelaría la topología interna.
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never

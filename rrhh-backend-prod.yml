@@ -1,0 +1,50 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  rrhh-backend · prod — sin defaults para secretos: si falta una variable, la app
+#  NO arranca (fail fast) en lugar de arrancar con un valor inseguro.
+#  El seeder de desarrollo no existe en este perfil.
+# ─────────────────────────────────────────────────────────────────────────────
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+  mail:
+    # Sin default: sin SMTP no hay códigos de verificación y nadie podría entrar.
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:587}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+server:
+  forward-headers-strategy: framework
+
+eureka:
+  client:
+    # Apagado hasta que eureka-server esté desplegado: EUREKA_ENABLED=true y EUREKA_URI
+    # en el .env. Sin eso, el backend sigue funcionando y Nginx lo alcanza directo.
+    enabled: ${EUREKA_ENABLED:false}
+    service-url:
+      # Sin default: las credenciales de desarrollo nunca llegan a producción.
+      defaultZone: ${EUREKA_URI:}
+  instance:
+    # Nombre del servicio en compose, resoluble en la red rrhh-prod-services. El backend
+    # está en tres redes: prefer-ip-address podría anunciar la IP de la red interna,
+    # que la gateway no alcanza.
+    hostname: backend
+
+rrhh:
+  security:
+    jwt:
+      secret: ${RRHH_JWT_SECRET}
+    cookie:
+      secure: true
+  mail:
+    from: ${MAIL_FROM}
+  cors:
+    # Solo si el frontend vive en otro origin (lista separada por comas).
+    allowed-origins: ${RRHH_CORS_ALLOWED_ORIGINS:}
+
+logging:
+  level:
+    root: INFO

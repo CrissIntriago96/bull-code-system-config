@@ -1,0 +1,6 @@
+# Configs de IDE
+/.idea
+/.vscode
+
+# Entorno local — nunca se versiona
+.env

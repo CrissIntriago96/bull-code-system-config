@@ -1,0 +1,29 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  rrhh-backend · dev — backend en Windows (IDE / mvn), PostgreSQL en Docker.
+#  Todos los valores de acá son SOLO PARA DESARROLLO LOCAL.
+# ─────────────────────────────────────────────────────────────────────────────
+spring:
+  datasource:
+    password: ${DB_PASSWORD:rrhh_dev}
+
+rrhh:
+  security:
+    jwt:
+      secret: ${RRHH_JWT_SECRET:dev-only-local-secret-change-me-0123456789abcdef}
+    cookie:
+      # http://localhost no es HTTPS: una cookie Secure no viajaría en todos los navegadores.
+      secure: false
+  cors:
+    # Solo por si alguien llama a la API directo desde ng serve sin proxy.
+    allowed-origins:
+      - http://localhost:4200
+  seed:
+    admin:
+      enabled: true
+      username: admin
+      password: ${RRHH_SEED_ADMIN_PASSWORD:admin}
+      email: admin@rrhh.local
+
+logging:
+  level:
+    com.bullcode.rrhh: DEBUG

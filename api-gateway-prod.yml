@@ -1,0 +1,24 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  api-gateway · prod — sin defaults para Eureka: si falta EUREKA_URI, la gateway
+#  NO arranca (fail fast) en lugar de quedar sin saber adónde enrutar.
+# ─────────────────────────────────────────────────────────────────────────────
+eureka:
+  client:
+    enabled: true
+    service-url:
+      # http://<usuario>:<contraseña>@eureka-server:8761/eureka/
+      defaultZone: ${EUREKA_URI}
+  instance:
+    # Nombre del servicio en compose, resoluble en la red rrhh-prod-services. Con varias
+    # redes, prefer-ip-address podría anunciar una IP que el resto no alcanza.
+    hostname: api-gateway
+
+rrhh:
+  gateway:
+    services:
+      # Una URL directa (http://backend:8080) enruta sin Eureka en una emergencia.
+      backend: ${RRHH_BACKEND_URI:lb://rrhh-backend}
+
+logging:
+  level:
+    root: INFO

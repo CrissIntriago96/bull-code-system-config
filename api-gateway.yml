@@ -1,0 +1,46 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  api-gateway — configuración común.
+#  Sin perfil: desarrollo local (servicios en localhost).
+#  Lo específico vive en api-gateway-{docker|prod}.yml.
+#
+#  La gateway solo enruta: NO recibe el secreto del JWT.
+# ─────────────────────────────────────────────────────────────────────────────
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            # Cada servicio nuevo suma su ruta ACÁ, con un order menor que el de esta
+            # ruta comodín para ganarle. Ej. /api/empleados/** → empleados-service.
+            - id: rrhh-backend
+              uri: ${rrhh.gateway.services.backend}
+              order: 1000
+              predicates:
+                - Path=/api/**
+          httpclient:
+            connect-timeout: 3000
+            response-timeout: 30s
+          # Sin esto la gateway descarta los X-Forwarded-* de Nginx, y el backend
+          # (forward-headers-strategy: framework) pierde el esquema y el host originales.
+          # Se confía solo en direcciones privadas y loopback: la gateway nunca se
+          # publica fuera de la red de Docker ni de 127.0.0.1.
+          trusted-proxies: '10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+|127\.0\.0\.1|0:0:0:0:0:0:0:1'
+
+server:
+  port: 8090
+
+eureka:
+  client:
+    # Sin perfil (desarrollo local) no hay Eureka: la gateway enruta directo a la URL
+    # de cada servicio. El perfil docker lo enciende y pasa a enrutar con lb://.
+    enabled: false
+    service-url:
+      defaultZone: ${EUREKA_URI:http://eureka:eureka_dev@localhost:8761/eureka/}
+
+rrhh:
+  gateway:
+    services:
+      # Servicios detrás de la gateway: una URL directa (http://…) o un nombre de
+      # Eureka (lb://<spring.application.name>). Cada perfil ajusta dónde encontrarlos.
+      backend: ${RRHH_BACKEND_URI:http://localhost:8080}

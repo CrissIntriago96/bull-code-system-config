@@ -1,0 +1,88 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  rrhh-backend — configuración común a todos los entornos.
+#  Lo específico vive en rrhh-backend-{dev|docker|prod}.yml.
+# ─────────────────────────────────────────────────────────────────────────────
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:rrhh}
+    username: ${DB_USER:rrhh}
+    password: ${DB_PASSWORD:}
+    hikari:
+      pool-name: rrhh-pool
+      maximum-pool-size: 10
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Flyway es la única fuente de verdad del esquema; Hibernate nunca lo toca.
+      ddl-auto: none
+    properties:
+      hibernate.jdbc.time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  # Local y docker usan Mailpit (sin autenticación ni TLS); prod exige su SMTP real.
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      # Sin timeouts, un SMTP colgado retiene para siempre los hilos de envío.
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+
+server:
+  port: 8080
+  error:
+    include-message: never
+    include-stacktrace: never
+
+eureka:
+  client:
+    # Apagado por defecto: dev (híbrido) y prod no tienen Eureka. El perfil docker lo enciende.
+    enabled: false
+    service-url:
+      defaultZone: ${EUREKA_URI:http://eureka:eureka_dev@localhost:8761/eureka/}
+
+management:
+  health:
+    mail:
+      # El correo se envía en segundo plano: un SMTP caído no debe marcar la API como caída.
+      enabled: false
+
+rrhh:
+  security:
+    jwt:
+      issuer: rrhh-backend
+      # Sesión normal: expira a las 8 h. "Mantener la sesión iniciada": 7 días.
+      session-ttl: 8h
+      remember-me-ttl: 7d
+      # Sin default acá: cada perfil decide de dónde sale (prod lo exige por env).
+      secret: ${RRHH_JWT_SECRET:}
+    cookie:
+      # El JWT viaja en una cookie HttpOnly: JavaScript nunca puede leerlo.
+      name: RRHH_SESSION
+      path: /api
+      same-site: Strict
+      secure: true
+    mfa:
+      # Segundo paso obligatorio: código de 6 dígitos por correo después de la contraseña.
+      enabled: ${RRHH_MFA_ENABLED:true}
+      login-code-ttl: 3m
+      reset-code-ttl: 10m
+      max-attempts: 5
+      resend-cooldown: 60s
+      max-resends: 3
+      # "Confiar en este dispositivo": el navegador no vuelve a pedir código por 30 días.
+      trusted-device-ttl: 30d
+      trusted-device-cookie: RRHH_TRUSTED_DEVICE
+  mail:
+    from: "${MAIL_FROM:RRHH <no-reply@rrhh.local>}"
+  cors:
+    # Vacío = sin CORS. Frontend y API comparten origin vía proxy (Nginx / ng serve).
+    allowed-origins: []

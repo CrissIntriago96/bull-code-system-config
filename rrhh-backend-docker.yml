@@ -1,0 +1,40 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  rrhh-backend · docker — backend dentro de docker compose.
+#  Las credenciales llegan por variables de entorno desde docker-compose.yml.
+# ─────────────────────────────────────────────────────────────────────────────
+spring:
+  datasource:
+    # "postgres" es el nombre del servicio en compose: jamás localhost entre contenedores.
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:rrhh}
+  mail:
+    # "mailpit" es el servicio de compose que atrapa todos los correos (sin auth ni TLS).
+    host: ${MAIL_HOST:mailpit}
+
+server:
+  # Nginx reenvía X-Forwarded-*: Spring reconstruye esquema y host originales.
+  forward-headers-strategy: framework
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      # "eureka-server" es el nombre del servicio en compose. Las credenciales van en la URL.
+      defaultZone: ${EUREKA_URI:http://eureka:eureka_dev@eureka-server:8761/eureka/}
+  instance:
+    # En Docker el hostname es el id del contenedor: se registra la IP de la red rrhh-net.
+    prefer-ip-address: true
+    # Local: la gateway ve al backend (y nota su caída) en segundos, no en 90 s.
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+
+rrhh:
+  security:
+    cookie:
+      # Docker Desktop local sirve por http://localhost.
+      secure: false
+  seed:
+    admin:
+      enabled: true
+      username: admin
+      password: ${RRHH_SEED_ADMIN_PASSWORD:admin}
+      email: admin@rrhh.local

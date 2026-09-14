@@ -1,0 +1,26 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  eureka-server — configuración común.
+#  Sin perfil: desarrollo local. Lo específico vive en eureka-server-{docker|prod}.yml.
+# ─────────────────────────────────────────────────────────────────────────────
+spring:
+  security:
+    user:
+      # Credenciales que usan los clientes (backend, api-gateway) para registrarse.
+      name: ${EUREKA_USERNAME:eureka}
+      password: ${EUREKA_PASSWORD:eureka_dev}
+
+server:
+  port: 8761
+
+eureka:
+  instance:
+    hostname: localhost
+  client:
+    # Standalone: el servidor no se registra a sí mismo ni busca otros nodos.
+    register-with-eureka: false
+    fetch-registry: false
+  server:
+    # En desarrollo hay una o dos instancias: la autopreservación se activaría enseguida
+    # y dejaría en el registro instancias muertas (la gateway les seguiría mandando tráfico).
+    enable-self-preservation: false
+    eviction-interval-timer-in-ms: 10000

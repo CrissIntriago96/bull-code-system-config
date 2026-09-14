@@ -1,0 +1,7 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  eureka-server · docker — Eureka dentro de docker compose.
+# ─────────────────────────────────────────────────────────────────────────────
+eureka:
+  instance:
+    # Nombre del servicio en compose: así lo encuentran los clientes en la red rrhh-net.
+    hostname: eureka-server
