@@ -25,12 +25,12 @@ El resto de `jenkins/` (`served.sh`, `env-check.sh`, `restart.sh`, `smoke-test.s
 
 ## Cómo se arman los archivos
 
-El Config Server combina, de mayor a menor prioridad: `{application}-{profile}.yml` → `{application}.yml` → `application-{profile}.yml` → `application.yml`. El nombre que se pide es el `spring.application.name` del cliente.
+El Config Server combina, de mayor a menor prioridad: `{application}-{profile}.yml` → `application-{profile}.yml` → `{application}.yml` → `application.yml`. Son las reglas de Spring Boot: un archivo de perfil siempre le gana a uno sin perfil, aunque sea global. Por eso un `application-prod.yml` pisaría a `rrhh-backend.yml` (hoy no existe ninguno). El nombre que se pide es el `spring.application.name` del cliente.
 
 - **`application.yml` (global) lo recibe TODO servicio.** Solo lleva lo que es seguro compartir (`server.shutdown`, `management`). Es la ÚNICA fuente de `management.endpoint.health.probes.enabled` para los tres clientes: sin eso no existe `/actuator/health/readiness`, que es lo primero que pide el `smoke-test.sh` de cada deploy. El secreto del JWT (HS256) va únicamente en `rrhh-backend*.yml`: la gateway no debe recibirlo, porque con ese secreto cualquier servicio podría firmar tokens. Esto difiere a propósito de `taurus-config`, que pone el JWT en el global.
 - **Perfiles.** `rrhh-backend` usa `dev` (híbrido: Spring local, DB y Mailpit en `localhost`), `docker` (hosts = nombres de servicio de compose, `prefer-ip-address: true`) y `prod`. `api-gateway` y `notification-service` no tienen `dev`: su archivo base (sin perfil) ES la configuración de desarrollo local.
 - **Secretos.** Siempre como `${VARIABLE}`, que el cliente resuelve con sus propias variables de entorno. En `*-prod.yml` van sin default para que el servicio no arranque si falta uno (fail fast). Los defaults de `dev`/`docker` son solo para desarrollo local.
-- **Lo que NO va acá:** `spring.application.name`, `spring.profiles.default` y `spring.config.import`. El cliente los necesita antes de hablar con el Config Server, así que quedan en su `application.yml` local.
+- **Lo que NO va acá:** `spring.application.name`, `spring.profiles.default`, `spring.config.import` y `spring.cloud.config.*` (credenciales, `fail-fast`, retry). El cliente los necesita antes de hablar con el Config Server, así que quedan en su `application.yml` local.
 
 ## Pipeline
 
