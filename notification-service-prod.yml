@@ -1,0 +1,34 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  notification-service · prod — sin defaults para secretos: si falta una variable,
+#  el servicio NO arranca (fail fast) en lugar de arrancar con un valor inseguro.
+# ─────────────────────────────────────────────────────────────────────────────
+spring:
+  security:
+    user:
+      name: ${NOTIFICATION_USERNAME}
+      password: ${NOTIFICATION_PASSWORD}
+  mail:
+    # Sin default: sin SMTP no hay códigos de verificación y nadie podría entrar.
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:587}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+
+eureka:
+  client:
+    enabled: true
+    service-url:
+      # http://<usuario>:<contraseña>@eureka-server:8761/eureka/
+      defaultZone: ${EUREKA_URI}
+  instance:
+    # Nombre del servicio en compose, resoluble en la red rrhh-prod-services.
+    hostname: notification-service
+
+rrhh:
+  mail:
+    from: ${MAIL_FROM}
+
+logging:
+  level:
+    root: INFO

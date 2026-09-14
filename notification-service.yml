@@ -1,0 +1,49 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  notification-service — configuración común.
+#  Sin perfil: desarrollo local. Lo específico vive en notification-service-{docker|prod}.yml.
+#
+#  Servicio INTERNO: la api-gateway no tiene (ni debe tener) ruta hacia él.
+# ─────────────────────────────────────────────────────────────────────────────
+spring:
+  security:
+    user:
+      # Credenciales con las que el backend pide los correos (HTTP Basic).
+      name: ${NOTIFICATION_USERNAME:backend}
+      password: ${NOTIFICATION_PASSWORD:notification_dev}
+
+  # Local y docker usan Mailpit (sin autenticación ni TLS); prod exige su SMTP real.
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    default-encoding: UTF-8
+    properties:
+      # Sin timeouts, un SMTP colgado retiene para siempre los hilos de envío.
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+
+server:
+  # 8082 y no 8081: el 8081 de Windows lo publica el Nginx del frontend en local.
+  port: 8082
+  error:
+    include-message: never
+    include-stacktrace: never
+
+management:
+  health:
+    mail:
+      # El correo se envía en segundo plano: un SMTP caído no debe marcar el servicio como caído.
+      enabled: false
+
+eureka:
+  client:
+    # Sin perfil no hay Eureka: el backend en modo híbrido lo encuentra por URL fija.
+    enabled: false
+    service-url:
+      defaultZone: ${EUREKA_URI:http://eureka:eureka_dev@localhost:8761/eureka/}
+
+rrhh:
+  mail:
+    from: "${MAIL_FROM:RRHH <no-reply@rrhh.local>}"

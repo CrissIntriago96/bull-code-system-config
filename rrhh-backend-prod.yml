@@ -22,7 +22,8 @@ server:
 eureka:
   client:
     # Apagado hasta que eureka-server esté desplegado: EUREKA_ENABLED=true y EUREKA_URI
-    # en el .env. Sin eso, el backend sigue funcionando y Nginx lo alcanza directo.
+    # en el .env (DEPLOYMENT-PROD.md del backend, "Microservicios"). Sin eso, el backend
+    # sigue funcionando y Nginx lo alcanza directo.
     enabled: ${EUREKA_ENABLED:false}
     service-url:
       # Sin default: las credenciales de desarrollo nunca llegan a producción.
@@ -41,6 +42,10 @@ rrhh:
       secure: true
   mail:
     from: ${MAIL_FROM}
+  notification:
+    # smtp hasta desplegar notification-service. Para migrar: NOTIFICATION_MODE=remote,
+    # NOTIFICATION_PASSWORD y EUREKA_ENABLED=true en el .env (DEPLOYMENT-PROD.md).
+    mode: ${NOTIFICATION_MODE:smtp}
   cors:
     # Solo si el frontend vive en otro origin (lista separada por comas).
     allowed-origins: ${RRHH_CORS_ALLOWED_ORIGINS:}

@@ -13,6 +13,8 @@ spring:
           routes:
             # Cada servicio nuevo suma su ruta ACÁ, con un order menor que el de esta
             # ruta comodín para ganarle. Ej. /api/empleados/** → empleados-service.
+            # Solo servicios que el navegador puede usar: notification-service es interno
+            # y NO lleva ruta (expuesto, cualquiera mandaría correos desde el dominio oficial).
             - id: rrhh-backend
               uri: ${rrhh.gateway.services.backend}
               order: 1000

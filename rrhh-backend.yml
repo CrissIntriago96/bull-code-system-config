@@ -83,6 +83,13 @@ rrhh:
       trusted-device-cookie: RRHH_TRUSTED_DEVICE
   mail:
     from: "${MAIL_FROM:RRHH <no-reply@rrhh.local>}"
+  notification:
+    # remote: los correos los envía notification-service (el backend lo encuentra por Eureka).
+    # smtp:   el backend los envía directo por SMTP (comportamiento anterior; transitorio).
+    mode: ${NOTIFICATION_MODE:remote}
+    username: ${NOTIFICATION_USERNAME:backend}
+    # Sin default acá: cada perfil decide de dónde sale (prod lo exige en modo remote).
+    password: ${NOTIFICATION_PASSWORD:}
   cors:
     # Vacío = sin CORS. Frontend y API comparten origin vía proxy (Nginx / ng serve).
     allowed-origins: []

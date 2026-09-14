@@ -15,7 +15,12 @@ Para un servicio `{application}` con perfil `{profile}`, el Config Server combin
 |-----------------|---------------------------|-----------------------|
 | Backend RRHH    | `rrhh-backend`            | `dev`, `docker`, `prod` |
 | API Gateway     | `api-gateway`             | (sin perfil), `docker`, `prod` |
-| Eureka Server   | `eureka-server`           | (sin perfil), `docker`, `prod` |
+| Notificaciones  | `notification-service`    | (sin perfil), `docker`, `prod` |
+
+`eureka-server` y `config-server` no tienen archivos acá: su configuración vive en su
+propio `src/main/resources`. El `config-server` necesita saber dónde está este repo, y
+con qué token leerlo, antes de poder leerlo. `eureka-server` es infraestructura raíz: el
+Config Server se registra en él, así que no puede depender del Config Server para arrancar.
 
 ## Reglas
 
@@ -31,6 +36,79 @@ Para un servicio `{application}` con perfil `{profile}`, el Config Server combin
 
 ## Estado
 
-Todavía no existe el Config Server ni los servicios tienen `spring-cloud-starter-config`:
-hoy cada servicio lee su configuración de `src/main/resources`. Hasta migrar, este repo
-es un espejo y cualquier cambio hay que hacerlo en los dos lados.
+Este repo es la **fuente de verdad** de `rrhh-backend`, `api-gateway` y
+`notification-service`: su `application.yml` local solo tiene el nombre, el perfil por
+defecto y el `spring.config.import` hacia el Config Server (sin `optional:`: sin su
+configuración no arrancan).
+
+- Local: el Config Server (`config-server/` en el backend, puerto 8888) lee esta
+  carpeta con el perfil `native`, commiteada o no.
+- `prod`: clona este repo por git y sirve **solo lo commiteado y pusheado a `main`**.
+- Los servicios toman la configuración al arrancar: un cambio se aplica reiniciándolos
+  (no hay `/actuator/refresh`). En prod lo hace el pipeline (abajo).
+
+## Pipeline (`Jenkinsfile`)
+
+Un push a `main` llega a producción solo. Jenkins revisa el repo cada 3 minutos y:
+
+1. **Lint** (`jenkins/lint.sh`): todo `.yml` es de una app conocida o global, y ningún
+   secreto está en texto plano.
+2. **Config Server** (`jenkins/served.sh`): el config-server de prod sirve cada app × perfil
+   de ESE commit (HTTP 200). Un YAML roto se detecta acá, antes de tocar nada.
+3. **Variables de entorno** (`jenkins/env-check.sh`): cada `${VAR}` sin default de un
+   `*-prod.yml` existe en el contenedor del servicio.
+4. **Reinicio** (`jenkins/restart.sh` + `smoke-test.sh`): recrea con la misma imagen solo
+   los servicios cuya configuración cambió, de a uno y en orden
+   (`notification-service` → `rrhh-backend` → `api-gateway`), con smoke test.
+   `application.yml` los reinicia a todos. Mientras reinicia, cada servicio no atiende.
+
+No buildea ni cambia imágenes: eso es de los jobs de `bull-code-system-backend`. Comparte
+con ellos el candado `rrhh-prod-deploy`, así un reinicio nunca se cruza con un deploy.
+
+### Crear el job
+
+Mismos requisitos de servidor que los jobs del backend (`DEPLOYMENT-PROD.md` del backend,
+"Deploy con Jenkins"): nodo `rrhh-prod`, usuario `jenkins` en el grupo `docker`,
+*Lockable Resources*.
+
+| Campo | Valor |
+| --- | --- |
+| *New Item* → nombre, tipo **Pipeline** | `bull-code-config` |
+| Definition | Pipeline script from SCM |
+| SCM | Git: `https://github.com/CrissIntriago96/bull-code-system-config.git` + credencial de solo lectura |
+| Branch | `*/main` |
+| Script Path | `Jenkinsfile` |
+
+Jenkins registra el polling y los parámetros recién después del primer build: lanzarlo a
+mano (*Build Now*). Ese primer build solo valida, no reinicia nada.
+
+> ⚠️ Con este job, **pushear a `main` reinicia servicios de producción**, y los scripts de
+> `jenkins/` corren con permisos de `docker` (equivale a root). Protegé la rama `main`.
+
+### Operación
+
+| Acción | Cómo |
+| --- | --- |
+| Aplicar un cambio | Push a `main`: el pipeline decide solo a quién reiniciar |
+| Forzar un reinicio | *Build with Parameters* → `RESTART=todos` (o un servicio) |
+| Solo validar | *Build with Parameters* → `RESTART=ninguno` |
+| Volver atrás | `git revert <commit>` + push |
+
+**Si un servicio no levanta con la configuración nueva, queda CAÍDO hasta que se pushee el
+revert.** El rollback a `:prev` de los jobs del backend no sirve: la imagen vieja leería la
+misma configuración rota. El build del revert lo reinicia aunque el diff neto contra el
+último build exitoso sea vacío (`jenkins/affected.sh` también compara contra el build
+fallido). Los servicios que venían después en el orden no se tocan.
+
+### Orden entre código y configuración
+
+Los dos repos se despliegan por separado, así que cada cambio tiene que funcionar con la
+versión que el otro tenga en ese momento:
+
+- **Propiedad nueva que el código necesita:** primero la configuración (el código viejo la
+  ignora), después el código.
+- **Propiedad que el código deja de usar:** primero el código, después se borra de la
+  configuración.
+- **Variable de entorno nueva** (`${VAR}` sin default en `*-prod.yml`): primero va al `.env`
+  y al `docker-compose.prod.yml` del servicio, y se despliega el servicio. Recién después se
+  pushea la configuración que la usa. Si no, `env-check.sh` frena el pipeline.
