@@ -97,7 +97,7 @@ pipeline {
         // entra uno por vez, así un reinicio nunca se cruza con un deploy.
         stage('Producción') {
             when { expression { (env.AFFECTED ?: '').trim() != '' } }
-            options { lock(resource: 'rrhh-prod-deploy') }
+            options { lock(resource: 'app-prod-deploy') }
             stages {
                 stage('Variables de entorno') {
                     steps {

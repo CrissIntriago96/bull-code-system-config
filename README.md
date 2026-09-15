@@ -72,7 +72,7 @@ Un push a `main` llega a producción solo. Jenkins revisa el repo cada 3 minutos
    `application*.yml` los reinicia a todos. Mientras reinicia, cada servicio no atiende.
 
 No buildea ni cambia imágenes: eso es de los jobs de `bull-code-system-backend`. Comparte
-con ellos el candado `rrhh-prod-deploy`, así un reinicio nunca se cruza con un deploy.
+con ellos el candado `app-prod-deploy`, así un reinicio nunca se cruza con un deploy.
 
 ### Crear el job
 
