@@ -7,6 +7,16 @@
 # ─────────────────────────────────────────────────────────────────────────────
 spring:
   cloud:
+    circuitbreaker:
+      resilience4j:
+        # El único timeout es httpclient.response-timeout. El TimeLimiter de Resilience4j
+        # corta a 1 s por default: encendido, un endpoint lento daría 504 con el servicio sano.
+        disable-time-limiter: true
+      bulkhead:
+        resilience4j:
+          # Hoy resilience4j-bulkhead no está en el classpath. Si llegara por una dependencia,
+          # sin esto limitaría en silencio a 25 las peticiones simultáneas por servicio.
+          enabled: false
     gateway:
       server:
         webflux:
@@ -15,11 +25,22 @@ spring:
             # ruta comodín para ganarle. Ej. /api/empleados/** → empleados-service.
             # Solo servicios que el navegador puede usar: notification-service es interno
             # y NO lleva ruta (expuesto, cualquiera mandaría correos desde el dominio oficial).
+            # Cada ruta lleva su propio CircuitBreaker (con el nombre del servicio y su
+            # instancia en resilience4j.circuitbreaker.instances): un servicio caído no abre
+            # el circuito de los demás.
             - id: common-service
               uri: ${rrhh.gateway.services.common-service}
               order: 1000
               predicates:
                 - Path=/api/**
+              filters:
+                # Requiere spring-cloud-starter-circuitbreaker-reactor-resilience4j en la
+                # gateway: con una imagen sin esa dependencia, la gateway NO arranca.
+                # Sin statusCodes: solo abren el circuito las fallas de red (conexión rechazada,
+                # timeout, sin instancias). Los 4xx y 5xx de common-service pasan intactos.
+                - name: CircuitBreaker
+                  args:
+                    name: common-service
           httpclient:
             connect-timeout: 3000
             response-timeout: 30s
@@ -46,3 +67,20 @@ rrhh:
       # Servicios detrás de la gateway: una URL directa (http://…) o un nombre de
       # Eureka (lb://<spring.application.name>). Cada perfil ajusta dónde encontrarlos.
       common-service: ${COMMON_SERVICE_URI:http://localhost:8080}
+
+# Circuito abierto → 503 SERVICE_UNAVAILABLE al instante (GatewayErrorAttributes), sin
+# esperar el timeout. Pasado wait-duration-in-open-state deja pasar unas pocas peticiones
+# de prueba (half-open): si salen bien se cierra, si no vuelve a abrirse.
+resilience4j:
+  circuitbreaker:
+    instances:
+      common-service:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        # Con menos llamadas no se evalúa: dos fallas sueltas no cortan el tráfico.
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        # Corto a propósito: cuando common-service vuelve (ej. tras un deploy), la gateway
+        # sigue respondiendo 503 como mucho este tiempo.
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3

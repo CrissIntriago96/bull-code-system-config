@@ -93,3 +93,27 @@ rrhh:
   cors:
     # Vacío = sin CORS. Frontend y API comparten origin vía proxy (Nginx / ng serve).
     allowed-origins: []
+
+# Circuit breakers de los adaptadores de correo: con el destino caído, los envíos se
+# descartan al instante en vez de ocupar hilos hasta el timeout. No entregan el correo:
+# con el circuito abierto o cerrado, un correo que no salió se pierde igual.
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        # Pocas llamadas (un correo por login o recuperación): ventana chica.
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        # Menor que mfa.resend-cooldown (60 s): cuando el usuario pide reenviar el código,
+        # el circuito ya deja pasar una prueba (half-open).
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2
+    instances:
+      # RemoteAuthMailer (modo remote). Un 4xx no cuenta como falla: el servicio respondió.
+      notification-service:
+        base-config: default
+      # SmtpAuthMailer (modo smtp, transitorio).
+      smtp:
+        base-config: default

@@ -47,3 +47,17 @@ eureka:
 rrhh:
   mail:
     from: "${MAIL_FROM:RRHH <no-reply@rrhh.local>}"
+
+# Circuit breaker del SMTP (SmtpMailSender): con el SMTP caído, los envíos se descartan al
+# instante en vez de retener hilos del executor hasta el timeout de conexión (5 s).
+resilience4j:
+  circuitbreaker:
+    instances:
+      smtp:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        # Menor que el resend-cooldown de common-service (60 s): el reenvío del código ya prueba.
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2

@@ -9,6 +9,12 @@ server:
   shutdown: graceful
 
 management:
+  health:
+    circuitbreakers:
+      # Un circuito abierto NO es un servicio caído: si contara en /actuator/health, un SMTP
+      # caído bajaría a common-service (healthcheck de Docker, Eureka, smoke tests). Explícito
+      # a propósito, para no depender del default de Resilience4j.
+      enabled: false
   endpoints:
     web:
       exposure:
