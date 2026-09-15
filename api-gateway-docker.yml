@@ -17,11 +17,11 @@ eureka:
     # Local: ver enseguida las instancias nuevas (el default es 30 s).
     registry-fetch-interval-seconds: 5
   instance:
-    # En Docker el hostname es el id del contenedor: se registra la IP de la red rrhh-net.
+    # En Docker el hostname es el id del contenedor: se registra la IP de la red app-net.
     prefer-ip-address: true
 
 rrhh:
   gateway:
     services:
-      # "rrhh-backend" es el spring.application.name con el que el backend se registra.
-      backend: ${RRHH_BACKEND_URI:lb://rrhh-backend}
+      # "common-service" es el spring.application.name con el que se registra en Eureka.
+      common-service: ${COMMON_SERVICE_URI:lb://common-service}

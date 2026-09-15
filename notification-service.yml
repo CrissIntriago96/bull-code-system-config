@@ -7,7 +7,7 @@
 spring:
   security:
     user:
-      # Credenciales con las que el backend pide los correos (HTTP Basic).
+      # Credenciales con las que common-service pide los correos (HTTP Basic).
       name: ${NOTIFICATION_USERNAME:backend}
       password: ${NOTIFICATION_PASSWORD:notification_dev}
 
@@ -39,7 +39,7 @@ management:
 
 eureka:
   client:
-    # Sin perfil no hay Eureka: el backend en modo híbrido lo encuentra por URL fija.
+    # Sin perfil no hay Eureka: common-service en modo híbrido lo encuentra por URL fija.
     enabled: false
     service-url:
       defaultZone: ${EUREKA_URI:http://eureka:eureka_dev@localhost:8761/eureka/}

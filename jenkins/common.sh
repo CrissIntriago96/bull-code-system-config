@@ -3,36 +3,36 @@
 #  Utilidades compartidas por los scripts del pipeline de configuración.
 #  Se incluye con:  . "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 #
-#  Los stacks (/opt/rrhh/<servicio>) los crean y despliegan los jobs de
+#  Los stacks (/opt/app/<servicio>) los crean y despliegan los jobs de
 #  bull-code-system-backend. Este pipeline solo los REINICIA para que relean su
 #  configuración: nunca buildea, ni cambia imágenes, ni copia compose.
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
 # Clientes del Config Server, en el orden en que se reinician:
-#   notification-service primero: el backend (modo remote) le pide los correos.
-#   api-gateway al final: su smoke test pasa por el backend.
-APPS="notification-service rrhh-backend api-gateway"
+#   notification-service primero: common-service (modo remote) le pide los correos.
+#   api-gateway al final: su smoke test pasa por common-service.
+APPS="notification-service common-service api-gateway"
 
-CONFIG_SERVER_DIR="/opt/rrhh/config-server"
+CONFIG_SERVER_DIR="/opt/app/config-server"
 
 # Datos de despliegue de cada app del Config Server (su spring.application.name).
 # Tienen que coincidir con el Jenkinsfile y el docker-compose.prod.yml de cada servicio
 # en bull-code-system-backend.
 service_info() {
   case "$1" in
-    rrhh-backend)
-      DEPLOY_DIR="/opt/rrhh/backend"; SERVICE="backend"; SERVICE_PORT="8080"
+    common-service)
+      DEPLOY_DIR="/opt/app/common-service"; SERVICE="common-service"; SERVICE_PORT="8080"
       # 401 = sin sesión, la respuesta correcta.
       SMOKE_PATH="/api/auth/session"; SMOKE_EXPECT="401"
       PROFILES="dev docker prod" ;;
     api-gateway)
-      DEPLOY_DIR="/opt/rrhh/api-gateway"; SERVICE="api-gateway"; SERVICE_PORT="8090"
-      # 401 = la gateway encontró al backend en Eureka y el backend respondió.
+      DEPLOY_DIR="/opt/app/api-gateway"; SERVICE="api-gateway"; SERVICE_PORT="8090"
+      # 401 = la gateway encontró a common-service en Eureka y common-service respondió.
       SMOKE_PATH="/api/auth/session"; SMOKE_EXPECT="401"
       PROFILES="default docker prod" ;;
     notification-service)
-      DEPLOY_DIR="/opt/rrhh/notification-service"; SERVICE="notification-service"; SERVICE_PORT="8082"
+      DEPLOY_DIR="/opt/app/notification-service"; SERVICE="notification-service"; SERVICE_PORT="8082"
       # 401 = vivo y exige credenciales (un 202 sería un buzón abierto).
       SMOKE_PATH="/internal/notifications/login-code"; SMOKE_EXPECT="401"
       PROFILES="default docker prod" ;;

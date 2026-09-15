@@ -56,6 +56,6 @@ for app in $APPS; do
 done
 
 if [ "$errors" -gt 0 ]; then
-  echo "config-server no pudo servir $errors combinación(es). Logs: docker logs rrhh-prod-config-config-server-1"
+  echo "config-server no pudo servir $errors combinación(es). Logs: docker logs config-server"
   exit 1
 fi

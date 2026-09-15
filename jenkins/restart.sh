@@ -5,7 +5,7 @@
 #    restart.sh <app>
 #
 #  Recrea el contenedor con la MISMA imagen (:prod) y espera "healthy":
-#    --no-deps   no toca dependencias (el postgres del backend sigue igual)
+#    --no-deps   no toca dependencias (PostgreSQL es otro stack y no se toca)
 #    --no-build  jamás buildea: las imágenes son de los jobs del backend
 #  Recrear (y no "docker restart") también aplica lo que haya cambiado en el .env
 #  del stack, igual que un deploy del servicio.

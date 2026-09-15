@@ -22,7 +22,7 @@ eureka:
       # http://<usuario>:<contraseña>@eureka-server:8761/eureka/
       defaultZone: ${EUREKA_URI}
   instance:
-    # Nombre del servicio en compose, resoluble en la red rrhh-prod-services.
+    # Nombre del servicio en compose, resoluble en la red app-prod-services.
     hostname: notification-service
 
 rrhh:

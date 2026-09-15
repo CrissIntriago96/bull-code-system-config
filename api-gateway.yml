@@ -15,15 +15,15 @@ spring:
             # ruta comodín para ganarle. Ej. /api/empleados/** → empleados-service.
             # Solo servicios que el navegador puede usar: notification-service es interno
             # y NO lleva ruta (expuesto, cualquiera mandaría correos desde el dominio oficial).
-            - id: rrhh-backend
-              uri: ${rrhh.gateway.services.backend}
+            - id: common-service
+              uri: ${rrhh.gateway.services.common-service}
               order: 1000
               predicates:
                 - Path=/api/**
           httpclient:
             connect-timeout: 3000
             response-timeout: 30s
-          # Sin esto la gateway descarta los X-Forwarded-* de Nginx, y el backend
+          # Sin esto la gateway descarta los X-Forwarded-* de Nginx, y common-service
           # (forward-headers-strategy: framework) pierde el esquema y el host originales.
           # Se confía solo en direcciones privadas y loopback: la gateway nunca se
           # publica fuera de la red de Docker ni de 127.0.0.1.
@@ -45,4 +45,4 @@ rrhh:
     services:
       # Servicios detrás de la gateway: una URL directa (http://…) o un nombre de
       # Eureka (lb://<spring.application.name>). Cada perfil ajusta dónde encontrarlos.
-      backend: ${RRHH_BACKEND_URI:http://localhost:8080}
+      common-service: ${COMMON_SERVICE_URI:http://localhost:8080}

@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-#  rrhh-backend · prod — sin defaults para secretos: si falta una variable, la app
+#  common-service · prod — sin defaults para secretos: si falta una variable, la app
 #  NO arranca (fail fast) en lugar de arrancar con un valor inseguro.
 #  El seeder de desarrollo no existe en este perfil.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -22,17 +22,17 @@ server:
 eureka:
   client:
     # Apagado hasta que eureka-server esté desplegado: EUREKA_ENABLED=true y EUREKA_URI
-    # en el .env (DEPLOYMENT-PROD.md del backend, "Microservicios"). Sin eso, el backend
+    # en el .env (DEPLOYMENT-PROD.md del backend, "4. Primer deploy"). Sin eso, common-service
     # sigue funcionando y Nginx lo alcanza directo.
     enabled: ${EUREKA_ENABLED:false}
     service-url:
       # Sin default: las credenciales de desarrollo nunca llegan a producción.
       defaultZone: ${EUREKA_URI:}
   instance:
-    # Nombre del servicio en compose, resoluble en la red rrhh-prod-services. El backend
-    # está en tres redes: prefer-ip-address podría anunciar la IP de la red interna,
-    # que la gateway no alcanza.
-    hostname: backend
+    # Nombre del servicio en compose, resoluble en la red app-prod-services. common-service
+    # está en tres redes (shared, services, db): prefer-ip-address podría anunciar la IP de
+    # una red que la gateway no alcanza.
+    hostname: common-service
 
 rrhh:
   security:

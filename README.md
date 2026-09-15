@@ -6,18 +6,18 @@ Repositorio centralizado de archivos de configuración `.yml` para los servicios
 
 Para un servicio `{application}` con perfil `{profile}`, el Config Server combina (de mayor a menor prioridad):
 
-1. `{application}-{profile}.yml` — ej. `rrhh-backend-prod.yml`
+1. `{application}-{profile}.yml` — ej. `common-service-prod.yml`
 2. `application-{profile}.yml` — global de ese perfil
-3. `{application}.yml` — ej. `rrhh-backend.yml`
+3. `{application}.yml` — ej. `common-service.yml`
 4. `application.yml` — global, lo reciben TODOS los servicios
 
 Sigue las reglas de Spring Boot: un archivo de perfil SIEMPRE le gana a uno sin perfil,
-aunque sea global. Por eso un `application-prod.yml` pisaría lo que diga `rrhh-backend.yml`.
+aunque sea global. Por eso un `application-prod.yml` pisaría lo que diga `common-service.yml`.
 Hoy no existe ninguno.
 
 | Servicio        | `spring.application.name` | Perfiles              |
 |-----------------|---------------------------|-----------------------|
-| Backend RRHH    | `rrhh-backend`            | `dev`, `docker`, `prod` |
+| Backend RRHH    | `common-service`          | `dev`, `docker`, `prod` |
 | API Gateway     | `api-gateway`             | (sin perfil), `docker`, `prod` |
 | Notificaciones  | `notification-service`    | (sin perfil), `docker`, `prod` |
 
@@ -36,7 +36,7 @@ Config Server se registra en él, así que no puede depender del Config Server p
   cliente los resuelve con sus propias variables de entorno. En `prod` van sin default:
   si falta la variable, el servicio no arranca.
 - **`application.yml` solo lleva lo que es seguro compartir con todos.** El secreto del
-  JWT (HS256) vive únicamente en `rrhh-backend*.yml`: con ese secreto cualquier servicio
+  JWT (HS256) vive únicamente en `common-service*.yml`: con ese secreto cualquier servicio
   podría firmar tokens.
 - **Lo que el cliente necesita ANTES de hablar con el Config Server no va acá**: queda en
   el `application.yml` local de cada servicio. Es `spring.application.name`,
@@ -45,7 +45,7 @@ Config Server se registra en él, así que no puede depender del Config Server p
 
 ## Estado
 
-Este repo es la **fuente de verdad** de `rrhh-backend`, `api-gateway` y
+Este repo es la **fuente de verdad** de `common-service`, `api-gateway` y
 `notification-service`: fuera de lo de la regla anterior, toda su configuración está acá.
 Importan el Config Server sin `optional:`, así que sin su configuración no arrancan.
 
@@ -68,7 +68,7 @@ Un push a `main` llega a producción solo. Jenkins revisa el repo cada 3 minutos
    verificar: avisa y sigue.
 4. **Reinicio** (`jenkins/restart.sh` + `jenkins/smoke-test.sh`): recrea con la misma imagen
    solo los servicios cuya configuración cambió, de a uno y en orden
-   (`notification-service` → `rrhh-backend` → `api-gateway`), con smoke test. Un cambio en
+   (`notification-service` → `common-service` → `api-gateway`), con smoke test. Un cambio en
    `application*.yml` los reinicia a todos. Mientras reinicia, cada servicio no atiende.
 
 No buildea ni cambia imágenes: eso es de los jobs de `bull-code-system-backend`. Comparte
@@ -77,7 +77,7 @@ con ellos el candado `rrhh-prod-deploy`, así un reinicio nunca se cruza con un 
 ### Crear el job
 
 Mismos requisitos de servidor que los jobs del backend (`DEPLOYMENT-PROD.md` del backend,
-"Deploy con Jenkins"): nodo `rrhh-prod`, usuario `jenkins` en el grupo `docker`,
+"1.6 Jenkins"): nodo `app-prod`, usuario `jenkins` en el grupo `docker`,
 *Lockable Resources*.
 
 | Campo | Valor |

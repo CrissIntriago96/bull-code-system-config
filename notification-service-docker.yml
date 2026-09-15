@@ -12,8 +12,8 @@ eureka:
     service-url:
       defaultZone: ${EUREKA_URI:http://eureka:eureka_dev@eureka-server:8761/eureka/}
   instance:
-    # En Docker el hostname es el id del contenedor: se registra la IP de la red rrhh-net.
+    # En Docker el hostname es el id del contenedor: se registra la IP de la red app-net.
     prefer-ip-address: true
-    # Local: el backend lo ve (y nota su caída) en segundos, no en 90 s.
+    # Local: common-service lo ve (y nota su caída) en segundos, no en 90 s.
     lease-renewal-interval-in-seconds: 10
     lease-expiration-duration-in-seconds: 30

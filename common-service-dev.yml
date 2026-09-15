@@ -1,10 +1,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
-#  rrhh-backend · dev — backend en Windows (IDE / mvn), PostgreSQL en Docker.
+#  common-service · dev — el servicio en Windows (IDE / mvn), PostgreSQL en Docker.
 #  Todos los valores de acá son SOLO PARA DESARROLLO LOCAL.
 # ─────────────────────────────────────────────────────────────────────────────
 spring:
   datasource:
-    password: ${DB_PASSWORD:rrhh_dev}
+    password: ${DB_PASSWORD:common_dev}
   cloud:
     discovery:
       client:
@@ -37,4 +37,4 @@ rrhh:
 
 logging:
   level:
-    com.bullcode.rrhh: DEBUG
+    com.bullcode.app: DEBUG
