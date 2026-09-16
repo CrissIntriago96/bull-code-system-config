@@ -1,12 +1,21 @@
 # ─────────────────────────────────────────────────────────────────────────────
-#  api-gateway · docker — gateway dentro de docker compose, con Eureka.
+#  rrhh-service · docker — el servicio dentro de docker compose, con Eureka.
+#  Las credenciales llegan por variables de entorno desde docker-compose.yml.
 # ─────────────────────────────────────────────────────────────────────────────
 spring:
+  datasource:
+    # "postgres" es el nombre del servicio en compose: jamás localhost entre contenedores.
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:rrhh}
+    password: ${DB_PASSWORD:rrhh_dev}
   cloud:
     loadbalancer:
       cache:
-        # Tras recrear un contenedor (IP nueva), la gateway deja de usar la vieja en segundos.
+        # Tras recrear common-service (IP nueva), el JWKS se pide a la IP nueva en segundos.
         ttl: 5s
+
+server:
+  # La gateway reenvía X-Forwarded-*: Spring reconstruye esquema y host originales.
+  forward-headers-strategy: framework
 
 eureka:
   client:
@@ -14,15 +23,11 @@ eureka:
     service-url:
       # "eureka-server" es el nombre del servicio en compose. Las credenciales van en la URL.
       defaultZone: ${EUREKA_URI:http://eureka:eureka_dev@eureka-server:8761/eureka/}
-    # Local: ver enseguida las instancias nuevas (el default es 30 s).
+    # Local: ver enseguida a common-service (JWKS) tras un reinicio (el default es 30 s).
     registry-fetch-interval-seconds: 5
   instance:
     # En Docker el hostname es el id del contenedor: se registra la IP de la red app-net.
     prefer-ip-address: true
-
-rrhh:
-  gateway:
-    services:
-      # "common-service" es el spring.application.name con el que se registra en Eureka.
-      common-service: ${COMMON_SERVICE_URI:lb://common-service}
-      rrhh-service: ${RRHH_SERVICE_URI:lb://rrhh-service}
+    # Local: la gateway ve a rrhh-service (y nota su caída) en segundos, no en 90 s.
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30

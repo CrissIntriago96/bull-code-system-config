@@ -18,6 +18,7 @@ Hoy no existe ninguno.
 | Servicio        | `spring.application.name` | Perfiles              |
 |-----------------|---------------------------|-----------------------|
 | Backend RRHH    | `common-service`          | `dev`, `docker`, `prod` |
+| Talento Humano  | `rrhh-service`            | `dev`, `docker`, `prod` |
 | API Gateway     | `api-gateway`             | (sin perfil), `docker`, `prod` |
 | Notificaciones  | `notification-service`    | (sin perfil), `docker`, `prod` |
 
@@ -35,17 +36,18 @@ Config Server se registra en él, así que no puede depender del Config Server p
 - **Ningún secreto en texto plano.** Los secretos se escriben como `${VARIABLE}` y el
   cliente los resuelve con sus propias variables de entorno. En `prod` van sin default:
   si falta la variable, el servicio no arranca.
-- **`application.yml` solo lleva lo que es seguro compartir con todos.** El secreto del
-  JWT (HS256) vive únicamente en `common-service*.yml`: con ese secreto cualquier servicio
-  podría firmar tokens.
+- **`application.yml` solo lleva lo que es seguro compartir con todos.** La clave PRIVADA
+  del JWT (RS256, `RRHH_JWT_PRIVATE_KEY`) vive únicamente en `common-service*.yml`: con ella
+  cualquier servicio podría firmar tokens. Los demás (`rrhh-service`) validan con la clave
+  pública del JWKS de common-service (`rrhh.security.jwt.jwk-set-uri`), que no es secreta.
 - **Lo que el cliente necesita ANTES de hablar con el Config Server no va acá**: queda en
   el `application.yml` local de cada servicio. Es `spring.application.name`,
-  `spring.profiles.default` (solo el backend), `spring.config.import` y
+  `spring.profiles.default` (common-service y rrhh-service), `spring.config.import` y
   `spring.cloud.config.*` (credenciales, `fail-fast` y retry).
 
 ## Estado
 
-Este repo es la **fuente de verdad** de `common-service`, `api-gateway` y
+Este repo es la **fuente de verdad** de `common-service`, `rrhh-service`, `api-gateway` y
 `notification-service`: fuera de lo de la regla anterior, toda su configuración está acá.
 Importan el Config Server sin `optional:`, así que sin su configuración no arrancan.
 
@@ -68,7 +70,8 @@ Un push a `main` llega a producción solo. Jenkins revisa el repo cada 3 minutos
    verificar: avisa y sigue.
 4. **Reinicio** (`jenkins/restart.sh` + `jenkins/smoke-test.sh`): recrea con la misma imagen
    solo los servicios cuya configuración cambió, de a uno y en orden
-   (`notification-service` → `common-service` → `api-gateway`), con smoke test. Un cambio en
+   (`notification-service` → `common-service` → `rrhh-service` → `api-gateway`), con smoke
+   test. `rrhh-service` va después de `common-service` porque valida los tokens con su JWKS. Un cambio en
    `application*.yml` los reinicia a todos. Mientras reinicia, cada servicio no atiende.
 
 No buildea ni cambia imágenes: eso es de los jobs de `bull-code-system-backend`. Comparte

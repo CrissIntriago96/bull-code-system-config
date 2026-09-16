@@ -1,0 +1,95 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  rrhh-service — configuración común a todos los entornos.
+#  Lo específico vive en rrhh-service-{dev|docker|prod}.yml.
+#
+#  Lógica de negocio de Talento Humano (empleados, contratos, vacaciones, nómina).
+#  El navegador lo alcanza SOLO a través de la api-gateway (ruta /api/rrhh/**), que
+#  lo resuelve en Eureka como "rrhh-service". Nunca se publica directo a Nginx.
+#
+#  NO recibe ningún secreto de firma: valida el JWT de la cookie RRHH_SESSION con la
+#  clave PÚBLICA que common-service publica en su JWKS (RS256).
+# ─────────────────────────────────────────────────────────────────────────────
+spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:rrhh}
+    username: ${DB_USER:rrhh}
+    password: ${DB_PASSWORD:}
+    hikari:
+      pool-name: rrhh-pool
+      maximum-pool-size: 10
+
+  jpa:
+    open-in-view: false
+    hibernate:
+      # Flyway es la única fuente de verdad del esquema; Hibernate nunca lo toca.
+      ddl-auto: none
+    properties:
+      hibernate.jdbc.time_zone: UTC
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  jackson:
+    serialization:
+      # Explícito, no confiado al default de Boot: el frontend parsea "2026-09-15" y
+      # "2026-09" como texto. En true, LocalDate y YearMonth saldrían como [2026,9,15]
+      # y el dashboard mostraría fechas inválidas sin un solo error en el log.
+      write-dates-as-timestamps: false
+
+server:
+  port: 8083
+  error:
+    include-message: never
+    include-stacktrace: never
+
+eureka:
+  client:
+    # Apagado por defecto: dev (híbrido) no tiene Eureka. docker y prod lo encienden SIEMPRE:
+    # la gateway lo encuentra ahí (lb://rrhh-service).
+    enabled: false
+    service-url:
+      defaultZone: ${EUREKA_URI:http://eureka:eureka_dev@localhost:8761/eureka/}
+
+rrhh:
+  security:
+    jwt:
+      # JWKS de common-service por NOMBRE LÓGICO: lo resuelve el load balancer (Eureka en
+      # docker/prod, spring.cloud.discovery.client.simple en dev). No es secreto: son
+      # claves públicas.
+      jwk-set-uri: ${JWKS_URI:http://common-service/.well-known/jwks.json}
+      # Mismo emisor que firma common-service: un token de otro emisor se rechaza.
+      issuer: common-service
+    cookie:
+      # La cookie de sesión la emite common-service (HttpOnly, Path=/api): el navegador la
+      # manda también a /api/rrhh/**. rrhh-service solo la LEE, nunca la escribe.
+      name: RRHH_SESSION
+  business:
+    # Decide qué día es "hoy" y a qué mes pertenece cada ingreso, vencimiento y periodo de
+    # nómina. La base guarda en UTC: sin esto, entre las 19:00 y la medianoche de Ecuador el
+    # dashboard ya estaría contando el día (y el mes) siguiente.
+    time-zone: ${RRHH_TIME_ZONE:America/Guayaquil}
+
+# Circuit breakers de rrhh-service.
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 2
+    instances:
+      # Descarga del JWKS de common-service (vía Eureka). El decoder la repite ante cada
+      # token con un "kid" desconocido (p. ej. tras reiniciar common-service con una clave
+      # efímera): con common-service caído, sin circuito cada petición esperaría el
+      # timeout de conexión. Abierto, corta al instante y la petición termina en 500
+      # (no 401: no es que el token esté mal, es que no se puede validar). Ventana chica
+      # y espera corta: cuando common-service vuelve, las sesiones andan de nuevo en <= 15 s.
+      common-service-jwks:
+        base-config: default
+        sliding-window-size: 5
+        minimum-number-of-calls: 3
+        wait-duration-in-open-state: 15s

@@ -1,0 +1,21 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  rrhh-service · dev — el servicio en Windows (IDE / mvn), PostgreSQL en Docker.
+#  Todos los valores de acá son SOLO PARA DESARROLLO LOCAL.
+#  Los datos semilla (DevDataSeeder) existen solo con los perfiles dev y docker.
+# ─────────────────────────────────────────────────────────────────────────────
+spring:
+  datasource:
+    password: ${DB_PASSWORD:rrhh_dev}
+  cloud:
+    discovery:
+      client:
+        simple:
+          instances:
+            # Sin Eureka en modo híbrido: el load balancer resuelve "common-service" (JWKS)
+            # a esta URL fija: el 8080 de Windows, corra con mvn o en Docker.
+            common-service:
+              - uri: http://localhost:8080
+
+logging:
+  level:
+    com.bullcode.rrhh: DEBUG

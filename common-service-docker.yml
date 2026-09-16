@@ -29,6 +29,10 @@ eureka:
 
 rrhh:
   security:
+    jwt:
+      # Sin RRHH_JWT_PRIVATE_KEY se firma con una clave efímera: reiniciar el contenedor
+      # cierra las sesiones (rrhh-service vuelve a pedir el JWKS solo, por el kid nuevo).
+      ephemeral-key-allowed: true
     cookie:
       # Docker Desktop local sirve por http://localhost.
       secure: false

@@ -18,7 +18,9 @@ spring:
 rrhh:
   security:
     jwt:
-      secret: ${RRHH_JWT_SECRET:dev-only-local-secret-change-me-0123456789abcdef}
+      # Sin RRHH_JWT_PRIVATE_KEY se firma con una clave efímera: reiniciar el servicio
+      # cierra las sesiones (rrhh-service vuelve a pedir el JWKS solo, por el kid nuevo).
+      ephemeral-key-allowed: true
     cookie:
       # http://localhost no es HTTPS: una cookie Secure no viajaría en todos los navegadores.
       secure: false

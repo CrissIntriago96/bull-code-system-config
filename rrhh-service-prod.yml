@@ -1,0 +1,33 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  rrhh-service · prod — sin defaults para secretos: si falta una variable, la app
+#  NO arranca (fail fast) en lugar de arrancar con un valor inseguro.
+#  El seeder de datos de desarrollo no existe en este perfil.
+# ─────────────────────────────────────────────────────────────────────────────
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+
+server:
+  forward-headers-strategy: framework
+
+eureka:
+  client:
+    # SIEMPRE encendido (a diferencia de common-service): la gateway lo encuentra en Eureka
+    # y el JWKS de common-service también se resuelve ahí. Exige common-service registrado
+    # (EUREKA_ENABLED=true en su .env): si no, ningún token valida y todo es 401.
+    enabled: true
+    service-url:
+      # Sin default: las credenciales de desarrollo nunca llegan a producción.
+      # http://<usuario>:<contraseña>@eureka-server:8761/eureka/
+      defaultZone: ${EUREKA_URI}
+  instance:
+    # Nombre del servicio en compose, resoluble en la red app-prod-services. rrhh-service
+    # está en dos redes (services, db): prefer-ip-address podría anunciar la IP de una red
+    # que la gateway no alcanza.
+    hostname: rrhh-service
+
+logging:
+  level:
+    root: INFO

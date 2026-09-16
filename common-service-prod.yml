@@ -37,7 +37,9 @@ eureka:
 rrhh:
   security:
     jwt:
-      secret: ${RRHH_JWT_SECRET}
+      # Sin default: sin la clave de firma no arranca (nunca una efímera en producción).
+      private-key: ${RRHH_JWT_PRIVATE_KEY}
+      ephemeral-key-allowed: false
     cookie:
       secure: true
   mail:

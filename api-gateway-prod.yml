@@ -18,6 +18,8 @@ rrhh:
     services:
       # Una URL directa (http://common-service:8080) enruta sin Eureka en una emergencia.
       common-service: ${COMMON_SERVICE_URI:lb://common-service}
+      # Una URL directa (http://rrhh-service:8083) enruta sin Eureka en una emergencia.
+      rrhh-service: ${RRHH_SERVICE_URI:lb://rrhh-service}
 
 logging:
   level:

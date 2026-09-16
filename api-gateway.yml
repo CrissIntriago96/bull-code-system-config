@@ -3,7 +3,7 @@
 #  Sin perfil: desarrollo local (servicios en localhost).
 #  Lo específico vive en api-gateway-{docker|prod}.yml.
 #
-#  La gateway solo enruta: NO recibe el secreto del JWT.
+#  La gateway solo enruta: NO valida el JWT ni recibe la clave privada que lo firma.
 # ─────────────────────────────────────────────────────────────────────────────
 spring:
   cloud:
@@ -28,6 +28,22 @@ spring:
             # Cada ruta lleva su propio CircuitBreaker (con el nombre del servicio y su
             # instancia en resilience4j.circuitbreaker.instances): un servicio caído no abre
             # el circuito de los demás.
+            #
+            # rrhh-service: lógica de Talento Humano (empleados, contratos, vacaciones,
+            # nómina). Nginx manda /api/rrhh/ a la gateway, y la gateway lo resuelve en
+            # Eureka. La ruta viaja intacta (sin StripPrefix): el servicio escucha /api/rrhh/**.
+            - id: rrhh-service
+              uri: ${rrhh.gateway.services.rrhh-service}
+              order: 100
+              predicates:
+                - Path=/api/rrhh/**
+              filters:
+                # Misma receta que common-service: sin statusCodes, solo las fallas de red
+                # abren el circuito (un 401/403 de rrhh-service pasa intacto). Abierto → 503
+                # con formato ApiError (GatewayErrorAttributes), y common-service no se entera.
+                - name: CircuitBreaker
+                  args:
+                    name: rrhh-service
             - id: common-service
               uri: ${rrhh.gateway.services.common-service}
               order: 1000
@@ -67,6 +83,7 @@ rrhh:
       # Servicios detrás de la gateway: una URL directa (http://…) o un nombre de
       # Eureka (lb://<spring.application.name>). Cada perfil ajusta dónde encontrarlos.
       common-service: ${COMMON_SERVICE_URI:http://localhost:8080}
+      rrhh-service: ${RRHH_SERVICE_URI:http://localhost:8083}
 
 # Circuito abierto → 503 SERVICE_UNAVAILABLE al instante (GatewayErrorAttributes), sin
 # esperar el timeout. Pasado wait-duration-in-open-state deja pasar unas pocas peticiones
@@ -82,5 +99,14 @@ resilience4j:
         failure-rate-threshold: 50
         # Corto a propósito: cuando common-service vuelve (ej. tras un deploy), la gateway
         # sigue respondiendo 503 como mucho este tiempo.
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+      # Mismos valores que common-service: un rrhh-service caído (o sin instancias en Eureka)
+      # corta solo /api/rrhh/**; login y sesión siguen andando.
+      rrhh-service:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
         wait-duration-in-open-state: 10s
         permitted-number-of-calls-in-half-open-state: 3

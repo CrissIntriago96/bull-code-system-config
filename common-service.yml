@@ -62,8 +62,13 @@ rrhh:
       # Sesión normal: expira a las 8 h. "Mantener la sesión iniciada": 7 días.
       session-ttl: 8h
       remember-me-ttl: 7d
-      # Sin default acá: cada perfil decide de dónde sale (prod lo exige por env).
-      secret: ${RRHH_JWT_SECRET:}
+      # Firma RS256. Clave RSA privada PKCS#8 (>= 2048 bits), PEM o base64 de una línea.
+      # Los demás servicios validan con la pública que publica /.well-known/jwks.json.
+      # Sin default acá: prod la exige por env; dev y docker pueden usar una efímera.
+      private-key: ${RRHH_JWT_PRIVATE_KEY:}
+      # true = sin private-key se genera una clave en memoria al arrancar (cada reinicio
+      # cierra las sesiones). Solo los perfiles de desarrollo lo encienden.
+      ephemeral-key-allowed: false
     cookie:
       # El JWT viaja en una cookie HttpOnly: JavaScript nunca puede leerlo.
       name: RRHH_SESSION

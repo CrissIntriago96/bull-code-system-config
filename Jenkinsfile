@@ -25,7 +25,7 @@ pipeline {
 
     parameters {
         choice(name: 'RESTART',
-               choices: ['auto', 'todos', 'ninguno', 'common-service', 'api-gateway', 'notification-service'],
+               choices: ['auto', 'todos', 'ninguno', 'common-service', 'rrhh-service', 'api-gateway', 'notification-service'],
                description: 'auto: reinicia los servicios cuya configuración cambió. todos / uno: fuerza el reinicio. ninguno: solo valida.')
     }
 
