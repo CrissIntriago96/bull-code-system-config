@@ -22,15 +22,16 @@ server:
 eureka:
   client:
     # Apagado hasta que eureka-server esté desplegado: EUREKA_ENABLED=true y EUREKA_URI
-    # en el .env (DEPLOYMENT-PROD.md del backend, "4. Primer deploy"). Sin eso, common-service
-    # sigue funcionando y Nginx lo alcanza directo.
+    # en el .env (DEPLOYMENT-PROD.md del backend, "4. Primer deploy"). Hoy es OBLIGATORIO:
+    # todo /api entra por la gateway (lb://common-service) y rrhh-service y bodega-service
+    # buscan su JWKS en Eureka. Sin registro, la gateway solo llega con COMMON_SERVICE_URI directa.
     enabled: ${EUREKA_ENABLED:false}
     service-url:
       # Sin default: las credenciales de desarrollo nunca llegan a producción.
       defaultZone: ${EUREKA_URI:}
   instance:
     # Nombre del servicio en compose, resoluble en la red app-prod-services. common-service
-    # está en tres redes (shared, services, db): prefer-ip-address podría anunciar la IP de
+    # está en dos redes (services, db): prefer-ip-address podría anunciar la IP de
     # una red que la gateway no alcanza.
     hostname: common-service
 

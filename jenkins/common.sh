@@ -11,9 +11,9 @@ set -euo pipefail
 
 # Clientes del Config Server, en el orden en que se reinician:
 #   notification-service primero: common-service (modo remote) le pide los correos.
-#   rrhh-service después de common-service: valida los tokens con su JWKS.
+#   rrhh-service y bodega-service después de common-service: validan los tokens con su JWKS.
 #   api-gateway al final: su smoke test pasa por common-service.
-APPS="notification-service common-service rrhh-service api-gateway"
+APPS="notification-service common-service rrhh-service bodega-service api-gateway"
 
 CONFIG_SERVER_DIR="/opt/app/config-server"
 
@@ -31,6 +31,11 @@ service_info() {
       DEPLOY_DIR="/opt/app/rrhh-service"; SERVICE="rrhh-service"; SERVICE_PORT="8083"
       # 401 = sin sesión, la respuesta correcta (no necesita el JWKS para responderlo).
       SMOKE_PATH="/api/rrhh/dashboard"; SMOKE_EXPECT="401"
+      PROFILES="dev docker prod" ;;
+    bodega-service)
+      DEPLOY_DIR="/opt/app/bodega-service"; SERVICE="bodega-service"; SERVICE_PORT="8084"
+      # 401 = sin sesión, la respuesta correcta (no necesita el JWKS para responderlo).
+      SMOKE_PATH="/api/bodega/dashboard"; SMOKE_EXPECT="401"
       PROFILES="dev docker prod" ;;
     api-gateway)
       DEPLOY_DIR="/opt/app/api-gateway"; SERVICE="api-gateway"; SERVICE_PORT="8090"

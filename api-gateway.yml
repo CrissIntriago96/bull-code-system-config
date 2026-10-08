@@ -44,6 +44,18 @@ spring:
                 - name: CircuitBreaker
                   args:
                     name: rrhh-service
+            # bodega-service: bodegas, productos, inventario, órdenes de venta y despacho. Misma
+            # receta que rrhh-service: ruta intacta (el servicio escucha /api/bodega/**), sin
+            # StripPrefix y con su propio CircuitBreaker.
+            - id: bodega-service
+              uri: ${rrhh.gateway.services.bodega-service}
+              order: 101
+              predicates:
+                - Path=/api/bodega/**
+              filters:
+                - name: CircuitBreaker
+                  args:
+                    name: bodega-service
             - id: common-service
               uri: ${rrhh.gateway.services.common-service}
               order: 1000
@@ -84,6 +96,7 @@ rrhh:
       # Eureka (lb://<spring.application.name>). Cada perfil ajusta dónde encontrarlos.
       common-service: ${COMMON_SERVICE_URI:http://localhost:8080}
       rrhh-service: ${RRHH_SERVICE_URI:http://localhost:8083}
+      bodega-service: ${BODEGA_SERVICE_URI:http://localhost:8084}
 
 # Circuito abierto → 503 SERVICE_UNAVAILABLE al instante (GatewayErrorAttributes), sin
 # esperar el timeout. Pasado wait-duration-in-open-state deja pasar unas pocas peticiones
@@ -104,6 +117,14 @@ resilience4j:
       # Mismos valores que common-service: un rrhh-service caído (o sin instancias en Eureka)
       # corta solo /api/rrhh/**; login y sesión siguen andando.
       rrhh-service:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+      # Mismos valores: un bodega-service caído corta solo /api/bodega/**.
+      bodega-service:
         sliding-window-type: COUNT_BASED
         sliding-window-size: 20
         minimum-number-of-calls: 10
